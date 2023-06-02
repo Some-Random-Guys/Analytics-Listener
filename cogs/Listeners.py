@@ -88,6 +88,7 @@ class Listeners(commands.Cog):
         )
 
         await self.db.add_message(guild_id=message.guild.id, data=msg)
+        log.debug(f"Added message: {msg}")
 
     @tasks.loop(seconds=60)
     async def cache(self):
@@ -95,7 +96,7 @@ class Listeners(commands.Cog):
         self.user_ignores = await self.db.get_ignore_list("user")
 
         self.aliased_users = await self.db.get_user_aliases()
-        print(self.aliased_users)
+        log.debug(self.aliased_users)
 
 
 async def setup(client):
