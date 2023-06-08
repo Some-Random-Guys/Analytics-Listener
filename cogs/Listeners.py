@@ -98,6 +98,14 @@ class Listeners(commands.Cog):
         self.aliased_users = await self.db.get_user_aliases()
         log.debug(self.aliased_users)
 
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.CommandNotFound):
+            return
+        raise error
+
+
+
 
 async def setup(client):
     await client.add_cog(Listeners(client))

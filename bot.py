@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import discord.app_commands
 from backend import client, discord_token, log
 import discord.utils
 
@@ -9,6 +10,15 @@ import discord.utils
 @client.event
 async def on_ready():
     log.info(f"Bot is ready. Logged in as {client.user}")
+
+
+async def on_tree_error(interaction, error):
+    if isinstance(error, discord.app_commands.CommandNotFound):
+        return
+    raise error
+
+
+client.tree.on_error = on_tree_error
 
 
 async def load_cogs():
