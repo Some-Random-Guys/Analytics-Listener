@@ -19,8 +19,6 @@ class Listeners(commands.Cog):
         log.info("Cog: Listeners.py Loaded")
         self.cache.start()
 
-        # sync commands
-
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         pass  # todo
@@ -35,11 +33,13 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-
         await self.db.delete_message(guild_id=message.guild.id, message_id=message.id)
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if not self.db.is_connected:
+            await self.db.connect()
+
         # If the message's channel is ignored, return
         try:
             if self.channel_ignores[message.channel.guild.id]:
@@ -87,24 +87,35 @@ class Listeners(commands.Cog):
             message_id=message.id
         )
 
-        await self.db.add_message(guild_id=message.guild.id, data=msg)
-        log.debug(f"Added message: {msg}")
+        try:
+            await self.db.add_message(guild_id=message.guild.id, data=msg)
+            log.debug(f"Added message: {msg}")
+        except Exception as e:
+            try:
+                await self.db.connect()
+                await self.db.add_message(guild_id=message.guild.id, data=msg)
+            except Exception as e:
+                log.error(f"Error while adding message: {e}")
 
     @tasks.loop(seconds=60)
     async def cache(self):
-        self.channel_ignores = await self.db.get_ignore_list("channel")
-        self.user_ignores = await self.db.get_ignore_list("user")
+        if not self.db.is_connected:
+            await self.db.connect()
 
-        self.aliased_users = await self.db.get_user_aliases()
-        log.debug(self.aliased_users)
+        try:
+            self.channel_ignores = await self.db.get_ignore_list("channel")
+            self.user_ignores = await self.db.get_ignore_list("user")
+
+            self.aliased_users = await self.db.get_user_aliases()
+            log.debug(self.aliased_users)
+        except Exception as e:
+            log.error(f"Error while fetching cache: {e}")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandNotFound):
             return
         raise error
-
-
 
 
 async def setup(client):
