@@ -5,7 +5,9 @@ import logging
 from discord.ext import commands
 from colorlog import ColoredFormatter
 from srg_analytics import DbCreds
+import warnings
 
+warnings.filterwarnings("ignore")
 intents = discord.Intents.all()
 
 

@@ -9,7 +9,9 @@ import discord.utils
 # This is what gets run when the bot stars
 @client.event
 async def on_ready():
+    print("Started")
     log.info(f"Bot is ready. Logged in as {client.user}")
+    log.info("Ping: " + str(round(client.latency * 1000, 2)) + "ms")
 
 
 async def on_tree_error(interaction, error):
