@@ -4,6 +4,7 @@ from srg_analytics import DB
 from srg_analytics.schemas import DataTemplate
 
 
+
 class Listeners(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -21,7 +22,7 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        pass  # todo
+        await self.db.edit_message(guild_id=before.guild.id, message_id=before.id, new_content=after.content)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -37,6 +38,9 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if not message.guild:
+            return
+
         if not self.db.is_connected:
             await self.db.connect()
 
