@@ -15,6 +15,8 @@ class Listeners(commands.Cog):
 
         self.aliased_users = {}
 
+        self.cached_messages = {}
+
     @commands.Cog.listener()
     async def on_ready(self):
         log.info("Cog: Listeners.py Loaded")
@@ -77,19 +79,27 @@ class Listeners(commands.Cog):
                         author = alias
                         break
 
-        msg = DataTemplate(
-            author_id=author,
-            is_bot=message.author.bot,
-            has_embed=len(message.embeds) > 0,
-            channel_id=message.channel.id,
-            epoch=message.created_at.timestamp(),
-            num_attachments=len(message.attachments),
-            mentions=",".join(mentions) if mentions else None,
-            ctx_id=int(message.reference.message_id) if message.reference is not None and
-                                                        type(message.reference.message_id) == int else None,
-            message_content=message.content,
-            message_id=message.id
+        msg = tuple(
+            [
+                message.id, # message_id
+                message.channel.id,  # channel_id
+                author, # author_id
+
+                message.content,  # message_content
+
+                message.created_at.timestamp(),  # epoch
+                message.author.bot,  # is_bot
+                len(message.embeds) > 0,  # has_embed
+                len(message.attachments),  # num_attachments
+                int(message.reference.message_id) if message.reference is not None and type(message.reference.message_id) == int else None,  # ctx_id
+                ",".join(mentions) if mentions else None, # mentions
+
+                # reactions with format {emoji_id: (count, [user_ids]), ...}
+                # ",".join([f"{reaction.emoji.id}:{reaction.count}:{','.join([str(user.id) for user in reaction.users])}" for reaction in message.reactions]) if message.reactions else None
+
+            ]
         )
+        print(msg)
 
         try:
             await self.db.add_message(guild_id=message.guild.id, data=msg)
