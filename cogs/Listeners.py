@@ -1,7 +1,6 @@
 from discord.ext import commands, tasks
 from backend import log, db_creds
 from srg_analytics import DB
-from srg_analytics.schemas import DataTemplate
 
 
 
@@ -111,11 +110,18 @@ class Listeners(commands.Cog):
             except Exception as e:
                 log.error(f"Error while adding message: {e}")
 
+                if not self.cached_messages.get(message.guild.id):
+                    self.cached_messages[message.guild.id] = []
+
+                self.cached_messages[message.guild.id].append(msg)
+
     @tasks.loop(seconds=60)
     async def cache(self):
+        # Connect the DB if it isn't already connected
         if not self.db.is_connected:
             await self.db.connect()
 
+        # Attempt to get channel ignores and user ignores
         try:
             self.channel_ignores = await self.db.get_ignore_list("channel")
             self.user_ignores = await self.db.get_ignore_list("user")
@@ -124,6 +130,22 @@ class Listeners(commands.Cog):
             log.debug(self.aliased_users)
         except Exception as e:
             log.error(f"Error while fetching cache: {e}")
+
+        # Attempt to add cached messages to the DB
+        if self.cached_messages == {}:
+            return
+
+        try:
+            for guild_id in self.cached_messages:
+                await self.db.add_messages_bulk(guild_id=guild_id, data=self.cached_messages[guild_id])
+
+                log.info(f"Added {len(self.cached_messages[guild_id])} cached messages to guild {guild_id}")
+                self.cached_messages[guild_id] = []
+
+        except Exception as e:
+            log.error(f"Error while adding cached messages: {e}")
+
+
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
