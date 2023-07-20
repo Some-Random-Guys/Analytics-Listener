@@ -8,7 +8,13 @@ from srg_analytics import DbCreds
 import warnings
 
 warnings.filterwarnings("ignore")
-intents = discord.Intents.all()
+intents = discord.Intents()
+intents.message_content = True
+intents.guilds = True
+intents.messages = True
+intents.reactions = True
+
+
 
 
 # Initializing the logger
