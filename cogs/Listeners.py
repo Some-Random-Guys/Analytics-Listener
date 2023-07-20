@@ -145,7 +145,6 @@ class Listeners(commands.Cog):
         except KeyError:
             pass
 
-        mentions = [str(mention.id) for mention in message.mentions]
         author = message.author.id
 
         # if message.author.id is an alias, set author to the alias' id
@@ -162,32 +161,35 @@ class Listeners(commands.Cog):
                         author = alias
                         break
 
-        msg = tuple(
-            [
-                message.id, # message_id
-                message.channel.id,  # channel_id
-                author, # author_id
 
-                message.content,  # message_content
-
-                message.created_at.timestamp(),  # epoch
-                message.author.bot,  # is_bot
-                len(message.embeds) > 0,  # has_embed
-                len(message.attachments),  # num_attachments
-                int(message.reference.message_id) if message.reference is not None and type(message.reference.message_id) == int else None,  # ctx_id
-                ",".join(mentions) if mentions else None, # mentions
-
-                # reactions with format {emoji_id: (count, [user_ids]), ...}
-                # ",".join([f"{reaction.emoji.id}:{reaction.count}:{','.join([str(user.id) for user in reaction.users])}" for reaction in message.reactions]) if message.reactions else None
-
-            ]
+        msg = Message(
+            guild_id=message.guild.id,
+            message_id=message.id,
+            channel_id=message.channel.id,
+            author_id=message.author.id,
+            aliased_author_id=author,
+            message_content=message.content,
+            epoch=message.created_at.timestamp(),
+            edit_epoch=message.edited_at.timestamp() if message.edited_at is not None else None,
+            is_bot=message.author.bot,
+            has_embed=message.embeds != [],
+            num_attachments=len(message.attachments),
+            ctx_id=int(message.reference.message_id) if message.reference is not None and type(
+                message.reference.message_id) == int else None,
+            user_mentions = None if message.raw_mentions == [] else str(message.raw_mentions),
+            channel_mentions = None if message.raw_channel_mentions == [] else str(message.raw_channel_mentions),
+            role_mentions = None if message.raw_role_mentions == [] else str(message.raw_role_mentions),
+            reactions=None
         )
-        print(msg)
+
+
 
         try:
+
             await self.db.add_message(guild_id=message.guild.id, data=msg)
-            log.debug(f"Added message: {msg}")
+            log.debug(f"Added message: {msg.message_id}")
         except Exception as e:
+            print("E")
             try:
                 await self.db.connect()
                 await self.db.add_message(guild_id=message.guild.id, data=msg)
@@ -195,7 +197,7 @@ class Listeners(commands.Cog):
                 log.error(f"Error while adding message: {e}")
 
                 if not self.cached_messages.get(message.guild.id):
-                    self.cached_messages[message.guild.id] = []
+                    self.cached_messages[message.guild.id]: list[Message] = []
 
                 self.cached_messages[message.guild.id].append(msg)
 
@@ -221,7 +223,10 @@ class Listeners(commands.Cog):
 
         try:
             for guild_id in self.cached_messages:
-                await self.db.add_messages_bulk(guild_id=guild_id, data=self.cached_messages[guild_id])
+                if not self.cached_messages[guild_id]:
+                    continue
+
+                await self.db.add_messages_bulk(guild_id, self.cached_messages[guild_id])
 
                 log.info(f"Added {len(self.cached_messages[guild_id])} cached messages to guild {guild_id}")
                 self.cached_messages[guild_id] = []
