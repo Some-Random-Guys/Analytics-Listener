@@ -70,8 +70,60 @@ class Listeners(commands.Cog):
             await self.db.delete_message(guild_id=message.guild.id, message_id=message.id)
 
     @commands.Cog.listener()
+    # # on reaction add
+    async def on_raw_reaction_add(self, payload):
+        message = await self.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        guild = self.client.get_guild(payload.guild_id)
+
+
+        reactions = {}
+
+        for reaction in message.reactions:
+            key = reaction.emoji.id if reaction.is_custom_emoji() else reaction.emoji
+            reactions[key] = reaction.count
+
+        if self.cached_messages.get(guild.id):
+            for msg in self.cached_messages[guild.id]:
+                if msg.message_id == payload.message_id:
+                    msg.reactions = reactions
+                    break
+
+        else:
+            await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s",
+                                  (str(reactions), payload.message_id))
+
+
+    @commands.Cog.listener()
+    # # on reaction remove
+    async def on_raw_reaction_remove(self, payload):
+        message = await self.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        guild = self.client.get_guild(payload.guild_id)
+
+        reactions = {}
+
+        for reaction in message.reactions:
+            key = reaction.emoji.id if reaction.is_custom_emoji() else reaction.emoji
+            reactions[key] = reaction.count
+
+        if reactions == {}:
+            reactions = None
+
+        if self.cached_messages.get(guild.id):
+            for msg in self.cached_messages[guild.id]:
+                if msg.message_id == payload.message_id:
+                    msg.reactions = reactions
+                    break
+
+        else:
+            await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s", (str(reactions) if reactions is not None else None, payload.message_id))
+
+
+
+    @commands.Cog.listener()
     async def on_message(self, message):
         if not message.guild:
+            return
+        if message.is_system():
             return
 
         if not self.db.is_connected:
