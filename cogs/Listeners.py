@@ -1,7 +1,7 @@
 from discord.ext import commands, tasks
 from backend import log, db_creds
 from srg_analytics import DB
-
+from srg_analytics.schemas import Message
 
 
 class Listeners(commands.Cog):
@@ -11,7 +11,6 @@ class Listeners(commands.Cog):
 
         self.channel_ignores = {}
         self.user_ignores = {}
-
         self.aliased_users = {}
 
         self.cached_messages = {}
@@ -23,7 +22,30 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        await self.db.edit_message(guild_id=before.guild.id, message_id=before.id, new_content=after.content)
+        user_mentions = None if after.raw_mentions == [] else str(after.raw_mentions),
+        channel_mentions = None if after.raw_channel_mentions == [] else str(after.raw_channel_mentions),
+        role_mentions = None if after.raw_role_mentions == [] else str(after.raw_role_mentions),
+
+        num_attachments = len(after.attachments)
+        edit_epoch = after.edited_at.timestamp() if after.edited_at else None
+
+        if self.cached_messages.get(before.guild.id):
+            for msg in self.cached_messages[before.guild.id]:
+                if msg.id == after.id:
+                    msg.content = after.content
+                    msg.user_mentions = user_mentions
+                    msg.channel_mentions = channel_mentions
+                    msg.role_mentions = role_mentions
+                    msg.num_attachments = num_attachments
+                    msg.edit_epoch = edit_epoch
+
+        else:
+
+            await self.db.edit_message(
+                guild_id=before.guild.id, message_id=before.id, content=after.content, user_mentions=user_mentions,
+                channel_mentions=channel_mentions, role_mentions=role_mentions, num_attachments=num_attachments,
+                edit_epoch=edit_epoch
+            )
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -31,11 +53,21 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
+        # When the bot is removed from a guild, delete all data associated with that guild
         await self.db.delete_guild(guild.id)
+        await self.db.execute(f"DELETE FROM `config` WHERE `data1` = {guild.id}")
+
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        await self.db.delete_message(guild_id=message.guild.id, message_id=message.id)
+        if self.cached_messages.get(message.guild.id):
+            for msg in self.cached_messages[message.guild.id]:
+                if msg.message_id == message.id:
+                    self.cached_messages[message.guild.id].remove(msg)
+                    break
+
+        else:
+            await self.db.delete_message(guild_id=message.guild.id, message_id=message.id)
 
     @commands.Cog.listener()
     async def on_message(self, message):
