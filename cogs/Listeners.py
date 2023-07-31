@@ -168,7 +168,7 @@ class Listeners(commands.Cog):
             channel_id=message.channel.id,
             author_id=message.author.id,
             aliased_author_id=author,
-            message_content=message.content,
+            message_content=message.content if message.content != "" else None,
             epoch=message.created_at.timestamp(),
             edit_epoch=message.edited_at.timestamp() if message.edited_at is not None else None,
             is_bot=message.author.bot,
