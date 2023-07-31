@@ -66,3 +66,16 @@ else:
 client = commands.Bot(intents=intents, command_prefix="!")  # Setting prefix
 
 db_creds: DbCreds = DbCreds(db_host, db_port, db_user, db_password, db_name)
+
+guild_join_message = discord.Embed(
+    title="Thank you for adding me to your server!",
+    description="I am a bot that can help you with your server's analytics.")
+guild_join_message.add_field(name="How to use me?",
+                                value="To use me, you can use the `!help` command to see all the commands I have.")
+guild_join_message.add_field(name="How to get support?",
+                                value="If you need support, you can join my support server [here](https://discord.gg/2YjJ2XV).")
+guild_join_message.add_field(name="Get started!",
+                                value="Run /admin harvest to start collecting data.")
+guild_join_message.add_field(name="Note",
+                             value="This bot will save every single message sent in your server, for analytics purposes. If you do not want this, please remove the bot from your server."
+                                   "Kicking the bot from the server will delete all data collected by the bot.")
