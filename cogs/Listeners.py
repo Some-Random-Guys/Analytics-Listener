@@ -89,8 +89,14 @@ class Listeners(commands.Cog):
                     break
 
         else:
-            await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s",
+            while True:
+                try:
+                    await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s",
                                   (str(reactions), payload.message_id))
+                    break
+                except Exception as e:
+                    print(e)
+                    await self.db.connect()
 
 
     @commands.Cog.listener()
@@ -115,7 +121,15 @@ class Listeners(commands.Cog):
                     break
 
         else:
-            await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s", (str(reactions) if reactions is not None else None, payload.message_id))
+            while True:
+                try:
+                    await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s",
+                                          (str(reactions) if reactions is not None else None, payload.message_id))
+
+                    break
+                except Exception as e:
+                    print(e)
+                    await self.db.connect()
 
 
 
@@ -189,7 +203,6 @@ class Listeners(commands.Cog):
             await self.db.add_message(guild_id=message.guild.id, data=msg)
             log.debug(f"Added message: {msg.message_id}")
         except Exception as e:
-            print("E")
             try:
                 await self.db.connect()
                 await self.db.add_message(guild_id=message.guild.id, data=msg)
