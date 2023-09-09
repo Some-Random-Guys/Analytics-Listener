@@ -57,7 +57,6 @@ class Listeners(commands.Cog):
         await self.db.delete_guild(guild.id)
         await self.db.execute(f"DELETE FROM `config` WHERE `data1` = {guild.id}")
 
-
     @commands.Cog.listener()
     async def on_message_delete(self, message):
         if self.cached_messages.get(message.guild.id):
@@ -75,7 +74,6 @@ class Listeners(commands.Cog):
         message = await self.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
         guild = self.client.get_guild(payload.guild_id)
 
-
         reactions = {}
 
         for reaction in message.reactions:
@@ -92,12 +90,11 @@ class Listeners(commands.Cog):
             while True:
                 try:
                     await self.db.execute(f"UPDATE `{guild.id}` SET `reactions` = %s WHERE `message_id` = %s",
-                                  (str(reactions), payload.message_id))
+                                          (str(reactions), payload.message_id))
                     break
                 except Exception as e:
                     print(e)
                     await self.db.connect()
-
 
     @commands.Cog.listener()
     # # on reaction remove
@@ -175,7 +172,6 @@ class Listeners(commands.Cog):
                         author = alias
                         break
 
-
         msg = Message(
             guild_id=message.guild.id,
             message_id=message.id,
@@ -190,13 +186,11 @@ class Listeners(commands.Cog):
             num_attachments=len(message.attachments),
             ctx_id=int(message.reference.message_id) if message.reference is not None and type(
                 message.reference.message_id) == int else None,
-            user_mentions = None if message.raw_mentions == [] else str(message.raw_mentions),
-            channel_mentions = None if message.raw_channel_mentions == [] else str(message.raw_channel_mentions),
-            role_mentions = None if message.raw_role_mentions == [] else str(message.raw_role_mentions),
+            user_mentions=None if message.raw_mentions == [] else str(message.raw_mentions),
+            channel_mentions=None if message.raw_channel_mentions == [] else str(message.raw_channel_mentions),
+            role_mentions=None if message.raw_role_mentions == [] else str(message.raw_role_mentions),
             reactions=None
         )
-
-
 
         try:
 
@@ -246,8 +240,6 @@ class Listeners(commands.Cog):
 
         except Exception as e:
             log.error(f"Error while adding cached messages: {e}")
-
-
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
