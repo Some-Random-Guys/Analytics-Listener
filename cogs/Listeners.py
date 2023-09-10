@@ -128,7 +128,19 @@ class Listeners(commands.Cog):
                     print(e)
                     await self.db.connect()
 
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel):
+        channel_id = channel.id
+        guild_id = channel.guild.id
 
+        # delete all messages in that channel from database
+        await self.db.execute(f"DELETE FROM `{guild_id}` WHERE `channel_id` = {channel_id}")
+
+        # delete all messages in that channel from cache
+        if self.cached_messages.get(guild_id):
+            for msg in self.cached_messages[guild_id]:
+                if msg.channel_id == channel_id:
+                    self.cached_messages[guild_id].remove(msg)
 
     @commands.Cog.listener()
     async def on_message(self, message):
