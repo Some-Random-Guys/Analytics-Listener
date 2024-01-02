@@ -71,6 +71,7 @@ class Listeners(commands.Cog):
     @commands.Cog.listener()
     # # on reaction add
     async def on_raw_reaction_add(self, payload):
+        return
         message = await self.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
         guild = self.client.get_guild(payload.guild_id)
 
@@ -99,6 +100,7 @@ class Listeners(commands.Cog):
     @commands.Cog.listener()
     # # on reaction remove
     async def on_raw_reaction_remove(self, payload):
+        return
         message = await self.client.get_channel(payload.channel_id).fetch_message(payload.message_id)
         guild = self.client.get_guild(payload.guild_id)
 
